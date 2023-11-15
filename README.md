@@ -65,7 +65,7 @@ The `ENDIANNESS_V` template parameter is used to specify the byte order of the d
 
 * `Endian::LITTLE`: Specifies little-endian byte order, where the least significant byte is stored first (common on x86 and x86-64 architectures).
 * `Endian::BIG`: Specifies big-endian byte order, where the most significant byte is stored first (common on some older architectures like Motorola 68k and in network protocols).
-* `Endian::NATIVE`: Uses the byte order of the **current system determined at compile-time**.
+* `Endian::NATIVE`: Uses the byte order of the **system running the compiler**.
 * `Endian::NETWORK`: Equivalent to `Endian::BIG` and is commonly used for network protocol data where big-endian byte order is prevalent.
 
 > [!IMPORTANT]
@@ -94,19 +94,33 @@ The `numio/std.hpp` header provides standardized aliases for common data types. 
 | 32-bit     | `NumIO::i32_IO` | `NumIO::u32_IO`   |
 | 64-bit     | `NumIO::i64_IO` | `NumIO::u64_IO`   |
 
-#### Floating-Point Types
+#### Floating-Point Types (IEEE 754)
 
-| **Precision**     | **Type**        |
-|-------------------|-----------------|
-| 32-bit (`float`)  | `NumIO::f32_IO` |
-| 64-bit (`double`) | `NumIO::f64_IO` |
+| **Precision**     | **Type**         |
+|-------------------|------------------|
+| 16-bit (`float`)  | `NumIO::fp16_IO` |
+| 32-bit (`float`)  | `NumIO::fp32_IO` |
+| 64-bit (`double`) | `NumIO::fp64_IO` |
 
-### Custom Integer Formats
+#### Floating-Point Extra Types
 
-In addition to the default integer types supported in C++, NumIO supports custom integer formats with specified bit widths and alignment. This allows you to work with non-standard integer representations. To work with custom integer formats, you can use the IntIO class and provide the necessary template parameters:
+Extra floating-point types, defined in `numio/fp_extra.hpp`.
+
+| **Precision**                   | **Type**             |
+|---------------------------------|----------------------|
+| Google Brain bfloat16 (`float`) | `NumIO::bf16_IO`     |
+| NVidia TensorFloat (`float`)    | `NumIO::nv_tf32_IO`  |
+| AMD fp24 (`float`)              | `NumIO::amd_fp24_IO` |
+| Pixar PXR24 (`float`)           | `NumIO::pxr24_IO`    |
+
+### Custom Formats
+
+In addition to the default integer types supported in C++, NumIO supports custom integer and floating-point formats with specified bit widths and alignment. This allows you to work with non-standard type representations. To work with custom formats, you can use the IntIO/FloatIO class and provide the necessary template parameters.
+
+#### Integer Formats
 
 ```cpp
-template <typename INT_T, int N_BITS, bool ALIGNED_V>
+template <typename INT_T, unsigned int N_BITS, bool ALIGNED_V>
 class IntIO;
 ```
 * `INT_T`: This will be the container to store the value in.
@@ -119,8 +133,30 @@ Example with a 12-bit integer:
 // Define I/O for unsigned 12-bit integer and aligned to 4 bytes
 using uint12_IO = NumIO::IntIO<uint32_t, 12, true>;
 
-std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34}; // Represents the custom 12-bit integer value 0x123
+std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34}; // Represents a 12-bit integer value
 uint32_t unpacked_value = uint12_IO::unpack(data_bytes);
+```
+
+#### Floating-Point Formats
+
+```cpp
+template <typename FLOAT_T, typename INT_IO_T, unsigned int N_BITS_EXPONENT, unsigned int N_BITS_FRACTION, bool ALIGNED_V>
+class FloatIO;
+```
+* `FLOAT_T`: This will be the container to store the value in.
+* `INT_IO_T`: Integer type used as intermediate storage for I/O retrieval and storage.
+* `N_BITS_EXPONENT`: Specifies the amount of bits of the exponent part of the floating point data. Defaults to an automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
+* `N_BITS_FRACTION`: Specifies the amount of bits of the fraction part of the floating point data. Defaults to an automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
+* `ALIGNED_V`: Specifies if the data to (un)pack is aligned to match up with the amount of bytes as used by the intermediate storage type `INT_IO_T`.
+
+Example with bfloat16:
+
+```cpp
+// Define I/O for a floating-point number with 8 bits for the exponent part and 7 bits for the fraction. Retrieved and stored in a 16-bit integer
+using bfloat16_IO = FloatIO<float, std::uint16_t, 8, 7>;
+
+std::vector<uint8_t> data_bytes = {0x3E, 0x20}; // Represents a bfloat16 value
+float unpacked_value = bfloat16_IO::unpack(data_bytes);
 ```
 
 ### Customize Defaults
@@ -136,3 +172,7 @@ You can customize default behaviour by defining the following macros before incl
 © 2023 DeltaRazero. All rights reserved.
 
 All included scripts, modules, etc. are licensed under the terms of the  [BSD 3-Clause license](https://github.com/deltarazero/numio-cpp/LICENSE), unless stated otherwise in the respective files.
+
+### Acknowledgments
+
+Sourcecode of CPython's implementation of floating-point data routines for the struct module served as basis and for insights resource for the implementation of packing floating-point data in this library. In particaluar, I thank the contributions of Eli Stevens, Mark Dickinson, and Victor Stinner.
