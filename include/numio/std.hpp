@@ -20,8 +20,9 @@ namespace NumIO
     using u32_IO = IntIO<std::uint32_t>;
     using u64_IO = IntIO<std::uint64_t>;
 
-    using f32_IO = FloatIO<float>;
-    using f64_IO = FloatIO<double>;
+    using fp16_IO = FloatIO<float,  std::uint16_t, 5, 10>;
+    using fp32_IO = FloatIO<float,  std::uint32_t>;
+    using fp64_IO = FloatIO<double, std::uint64_t>;
 }
 
 // ****************************************************************************
