@@ -433,7 +433,6 @@ namespace NumIO
             // This means this number does not have an assumed leading one before the binary point.
             int denormalized_adjust = (exponent != 0) & 1;
 
-            double test = static_cast<FLOAT_T>(fraction_numerator)/FRACTION_DENOMINATOR;
 
             FLOAT_T result = (
                 std::pow(2.0, -EXPONENT_BIAS + exponent + 1 - denormalized_adjust) // or use math.exp2(x)

@@ -1,10 +1,10 @@
-#ifndef FP_EXTRA_H
-#define FP_EXTRA_H
+#ifndef NUMIO_FP_EXTRA_H
+#define NUMIO_FP_EXTRA_H
 
 // ****************************************************************************
 
-#include "../numio.hpp"
 #include <cstdint>
+#include "../numio.hpp"
 
 namespace NumIO
 {
@@ -23,4 +23,4 @@ namespace NumIO
 
 // ****************************************************************************
 
-#endif /* FP_EXTRA_H */
+#endif /* NUMIO_FP_EXTRA_H */
