@@ -86,13 +86,14 @@ The `numio/std.hpp` header provides standardized aliases for common data types. 
 
 #### Integer Types
 
-| **Length** | **Signed Type** | **Unsigned Type** |
-|------------|-----------------|-------------------|
-| 8-bit      | `NumIO::i8_IO`  | `NumIO::u8_IO`    |
-| 16-bit     | `NumIO::i16_IO` | `NumIO::u16_IO`   |
-| 24-bit     | `NumIO::i24_IO` | `NumIO::u24_IO`   |
-| 32-bit     | `NumIO::i32_IO` | `NumIO::u32_IO`   |
-| 64-bit     | `NumIO::i64_IO` | `NumIO::u64_IO`   |
+| **Length**       | **Signed Type**  | **Unsigned Type**  |
+|------------------|------------------|--------------------|
+| 8-bit            | `NumIO::i8_IO`   | `NumIO::u8_IO`     |
+| 16-bit           | `NumIO::i16_IO`  | `NumIO::u16_IO`    |
+| 24-bit (packed)  | `NumIO::i24_IO`  | `NumIO::u24_IO`    |
+| 24-bit (aligned) | `NumIO::i24a_IO` | `NumIO::u24a_IO`   |
+| 32-bit           | `NumIO::i32_IO`  | `NumIO::u32_IO`    |
+| 64-bit           | `NumIO::i64_IO`  | `NumIO::u64_IO`    |
 
 #### Floating-Point Types (IEEE 754)
 
