@@ -39,7 +39,9 @@ The `NumIO` namespace provides two main template classes: `IntIO` for integer da
 Following is a short description of features.
 
 
-### Unpacking and Packing from Vectors
+### Unpacking and Packing with Arrays
+
+The methods `unpack` and `pack` have overloads to support either `std::vector` or C-style arrays as input. The example below demonstrates the use of using `std::vector` arrays.
 
 ```cpp
 std::vector<std::uint8_t> data_bytes = {0x01, 0x02, 0x03, 0x04};
@@ -49,7 +51,7 @@ std::vector<std::uint8_t> data_bytes;
 NumIO::IntIO<std::int32_t>::pack(1234, data_bytes);
 ```
 
-### Reading/Writing from Streams
+### Reading/Writing with Streams
 
 ```cpp
 std::ifstream input_file("input.bin", std::ios::binary);
@@ -88,20 +90,20 @@ The `numio/std.hpp` header provides standardized aliases for common data types. 
 
 | **Length**       | **Signed Type**  | **Unsigned Type**  |
 |------------------|------------------|--------------------|
-| 8-bit            | `NumIO::i8_IO`   | `NumIO::u8_IO`     |
-| 16-bit           | `NumIO::i16_IO`  | `NumIO::u16_IO`    |
-| 24-bit (packed)  | `NumIO::i24_IO`  | `NumIO::u24_IO`    |
-| 24-bit (aligned) | `NumIO::i24a_IO` | `NumIO::u24a_IO`   |
-| 32-bit           | `NumIO::i32_IO`  | `NumIO::u32_IO`    |
-| 64-bit           | `NumIO::i64_IO`  | `NumIO::u64_IO`    |
+| 8-bit            | `NumIO::i8_io`   | `NumIO::u8_io`     |
+| 16-bit           | `NumIO::i16_io`  | `NumIO::u16_io`    |
+| 24-bit (packed)  | `NumIO::i24_io`  | `NumIO::u24_io`    |
+| 24-bit (aligned) | `NumIO::i24a_io` | `NumIO::u24a_io`   |
+| 32-bit           | `NumIO::i32_io`  | `NumIO::u32_io`    |
+| 64-bit           | `NumIO::i64_io`  | `NumIO::u64_io`    |
 
 #### Floating-Point Types (IEEE 754)
 
 | **Precision**     | **Type**         |
 |-------------------|------------------|
-| 16-bit (`float`)  | `NumIO::fp16_IO` |
-| 32-bit (`float`)  | `NumIO::fp32_IO` |
-| 64-bit (`double`) | `NumIO::fp64_IO` |
+| 16-bit (`float`)  | `NumIO::fp16_io` |
+| 32-bit (`float`)  | `NumIO::fp32_io` |
+| 64-bit (`double`) | `NumIO::fp64_io` |
 
 #### Floating-Point Extra Types
 
@@ -109,10 +111,10 @@ Extra floating-point types, defined in `numio/fp_extra.hpp`.
 
 | **Precision**                   | **Type**             |
 |---------------------------------|----------------------|
-| Google Brain bfloat16 (`float`) | `NumIO::bf16_IO`     |
-| NVidia TensorFloat (`float`)    | `NumIO::nv_tf32_IO`  |
-| AMD fp24 (`float`)              | `NumIO::amd_fp24_IO` |
-| Pixar PXR24 (`float`)           | `NumIO::pxr24_IO`    |
+| Google Brain bfloat16 (`float`) | `NumIO::bf16_io`     |
+| NVidia TensorFloat (`float`)    | `NumIO::nv_tf32_io`  |
+| AMD fp24 (`float`)              | `NumIO::amd_fp24_io` |
+| Pixar PXR24 (`float`)           | `NumIO::pxr24_io`    |
 
 ### Custom Formats
 
@@ -132,10 +134,10 @@ Example with a 12-bit integer:
 
 ```cpp
 // Define I/O for unsigned 12-bit integer and aligned to 4 bytes
-using uint12_IO = NumIO::IntIO<uint32_t, 12, true>;
+using uint12_io = NumIO::IntIO<uint32_t, 12, true>;
 
 std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34}; // Represents a 12-bit integer value
-uint32_t unpacked_value = uint12_IO::unpack(data_bytes);
+uint32_t unpacked_value = uint12_io::unpack(data_bytes);
 ```
 
 #### Floating-Point Formats
@@ -154,10 +156,10 @@ Example with bfloat16:
 
 ```cpp
 // Define I/O for a floating-point number with 8 bits for the exponent part and 7 bits for the fraction. Retrieved and stored in a 16-bit integer
-using bfloat16_IO = FloatIO<float, std::uint16_t, 8, 7>;
+using bf16_io = FloatIO<float, std::uint16_t, 8, 7>;
 
 std::vector<uint8_t> data_bytes = {0x3E, 0x20}; // Represents a bfloat16 value
-float unpacked_value = bfloat16_IO::unpack(data_bytes);
+float unpacked_value = bf16_io::unpack(data_bytes);
 ```
 
 ### Customize Defaults

@@ -25,7 +25,7 @@ int main()
             #define TEST_INT_BITS 32
             #define TEST_ALIGN true
 
-            using i32_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i32_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive
             {
@@ -35,11 +35,11 @@ int main()
                 ibuffer << (char)0xAD;
                 ibuffer << (char)0x05; // MSB
 
-                auto value = i32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i32_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 95230543);
 
                 std::stringstream obuffer;
-                i32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -52,11 +52,11 @@ int main()
                 ibuffer << (char)0x52;
                 ibuffer << (char)0xFA; // MSB
 
-                auto value = i32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i32_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -95230543);
 
                 std::stringstream obuffer;
-                i32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -75,7 +75,7 @@ int main()
             #define TEST_INT_BITS 32
             #define TEST_ALIGN true
 
-            using i32_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i32_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive
             {
@@ -85,11 +85,11 @@ int main()
                 ibuffer << (char)0x1A;
                 ibuffer << (char)0x4F; // LSB
 
-                auto value = i32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i32_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 95230543);
 
                 std::stringstream obuffer;
-                i32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -102,11 +102,11 @@ int main()
                 ibuffer << (char)0xE5;
                 ibuffer << (char)0xB1; // LSB
 
-                auto value = i32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i32_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -95230543);
 
                 std::stringstream obuffer;
-                i32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -125,7 +125,7 @@ int main()
             #define TEST_INT_BITS 24
             #define TEST_ALIGN true
 
-            using i24a_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i24a_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -135,11 +135,11 @@ int main()
                 ibuffer << (char)0b01111111; // MSB (value)
                 ibuffer << (char)0b00000000; // MSB (container)
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8388607);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -152,11 +152,11 @@ int main()
                 ibuffer << (char)0b11111111; // MSB (value)
                 ibuffer << (char)0b00000000; // MSB (container)
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -169,15 +169,15 @@ int main()
                 ibuffer << (char)0x7F; // MSB (value)
                 ibuffer << (char)0x42; // MSB (container)
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8384555);
 
                 std::stringstream tmp_buffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24a_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24a_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -193,7 +193,7 @@ int main()
             #define TEST_INT_BITS 24
             #define TEST_ALIGN true
 
-            using i24a_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i24a_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -203,11 +203,11 @@ int main()
                 ibuffer << (char)0b11111111;
                 ibuffer << (char)0b11111111; // LSB
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8388607);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -220,11 +220,11 @@ int main()
                 ibuffer << (char)0b11111111;
                 ibuffer << (char)0b11111111; // LSB
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -237,15 +237,15 @@ int main()
                 ibuffer << (char)0xF0;
                 ibuffer << (char)0x2B; // LSB
 
-                auto value = i24a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8384555);
 
                 std::stringstream tmp_buffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24a_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24a_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -261,7 +261,7 @@ int main()
             #define TEST_INT_BITS 24
             #define TEST_ALIGN false
 
-            using i24_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i24_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -271,15 +271,15 @@ int main()
                 ibuffer << (char)0b01111111; // MSB
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8388607);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -292,15 +292,15 @@ int main()
                 ibuffer << (char)0b11111111; // MSB
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -313,15 +313,15 @@ int main()
                 ibuffer << (char)0x7F; // MSB
                 ibuffer << (char)0x42; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8384555);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -337,7 +337,7 @@ int main()
             #define TEST_INT_BITS 24
             #define TEST_ALIGN false
 
-            using i24_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i24_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -347,15 +347,15 @@ int main()
                 ibuffer << (char)0b11111111; // LSB
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8388607);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -368,15 +368,15 @@ int main()
                 ibuffer << (char)0b11111111; // LSB
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -389,15 +389,15 @@ int main()
                 ibuffer << (char)0x2B; // LSB
                 ibuffer << (char)0x42; // Padding
 
-                auto value = i24_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i24_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 8384555);
 
                 std::stringstream tmp_buffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i24_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i24_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i24_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i24_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i24_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -416,7 +416,7 @@ int main()
             #define TEST_INT_BITS 13
             #define TEST_ALIGN true
 
-            using i13a_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i13a_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -426,11 +426,11 @@ int main()
                 ibuffer << (char)0b00000000; // Padding
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 4095);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -443,11 +443,11 @@ int main()
                 ibuffer << (char)0b00000000; // Padding
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -460,15 +460,15 @@ int main()
                 ibuffer << (char)0b00000000; // Padding
                 ibuffer << (char)0b00000000; // Padding
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream tmp_buffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i13a_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i13a_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -484,7 +484,7 @@ int main()
             #define TEST_INT_BITS 13
             #define TEST_ALIGN true
 
-            using i13a_IO = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
+            using i13a_io = IntIO<std::int32_t, TEST_INT_BITS, TEST_ALIGN>;
 
             // Positive integer
             {
@@ -494,11 +494,11 @@ int main()
                 ibuffer << (char)0b00001111; // MSB
                 ibuffer << (char)0b11111111; // LSB
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == 4095);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -511,11 +511,11 @@ int main()
                 ibuffer << (char)0b00011111; // MSB
                 ibuffer << (char)0b11111111; // LSB
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
             }
@@ -528,15 +528,15 @@ int main()
                 ibuffer << (char)0b01011111; // MSB
                 ibuffer << (char)0b11111111; // LSB
 
-                auto value = i13a_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = i13a_io::read<TEST_ENDIANNESS>(ibuffer);
                 assert(value == -1);
 
                 std::stringstream tmp_buffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, tmp_buffer);
-                value = i13a_IO::read<TEST_ENDIANNESS>(tmp_buffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, tmp_buffer);
+                value = i13a_io::read<TEST_ENDIANNESS>(tmp_buffer);
 
                 std::stringstream obuffer;
-                i13a_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                i13a_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(tmp_buffer.str() == obuffer.str());
             }
@@ -551,8 +551,8 @@ int main()
     {
         // Float
         {
-            using f32_IO = FloatIO<float, std::int32_t>;
-            using i32_IO = IntIO<std::int32_t>;
+            using f32_io = FloatIO<float>;
+            using i32_io = IntIO<std::int32_t>;
 
             // Little endian
             {
@@ -564,12 +564,12 @@ int main()
                 ibuffer << (char)0x9E;
                 ibuffer << (char)0x3F; // MSB
 
-                auto value = f32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = f32_io::read<TEST_ENDIANNESS>(ibuffer);
                 float comparison = 1.23456789;
                 assert(value == comparison);
 
                 std::stringstream obuffer;
-                f32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                f32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
 
@@ -586,12 +586,12 @@ int main()
                 ibuffer << (char)0x06;
                 ibuffer << (char)0x52; // LSB
 
-                auto value = f32_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = f32_io::read<TEST_ENDIANNESS>(ibuffer);
                 float comparison = 1.23456789;
                 assert(value == comparison);
 
                 std::stringstream obuffer;
-                f32_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                f32_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
 
@@ -601,7 +601,7 @@ int main()
 
         // Double
         {
-            using f64_IO = FloatIO<double, std::uint64_t>;
+            using f64_io = FloatIO<double>;
 
             // Little endian Denormalized
             {
@@ -617,12 +617,12 @@ int main()
                 ibuffer << (char)0xBF;
                 ibuffer << (char)0xBF; // MSB
 
-                auto value = f64_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = f64_io::read<TEST_ENDIANNESS>(ibuffer);
                 double comparison = -0.12345678987654321;
                 assert(value == comparison);
 
                 std::stringstream obuffer;
-                f64_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                f64_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
 
@@ -643,12 +643,12 @@ int main()
                 ibuffer << (char)0xF3;
                 ibuffer << (char)0x3F; // MSB
 
-                auto value = f64_IO::read<TEST_ENDIANNESS>(ibuffer);
+                auto value = f64_io::read<TEST_ENDIANNESS>(ibuffer);
                 double comparison = 1.234567898765432;
                 assert(value == comparison);
 
                 std::stringstream obuffer;
-                f64_IO::write<TEST_ENDIANNESS>(value, obuffer);
+                f64_io::write<TEST_ENDIANNESS>(value, obuffer);
                 ibuffer.seekg(0);
                 assert(ibuffer.str() == obuffer.str());
 

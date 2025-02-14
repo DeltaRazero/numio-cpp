@@ -45,21 +45,29 @@ namespace NumIO
 
         // https://stackoverflow.com/a/23782939
         static constexpr unsigned int __floorlog2(unsigned int x)
-        {
-            return x == 1 ? 0 : 1+__floorlog2(x >> 1);
+        { return x == 1 ? 0 : 1+__floorlog2(x >> 1); }
+
+        template<typename INT_T>
+        static constexpr INT_T __unsigned_max(unsigned int n_bits) {
+            static_assert(std::is_integral_v<INT_T>, "Template parameter INT_T must be an int type!");
+            return (static_cast<INT_T>(1) << (n_bits-1)) - 1 + (static_cast<INT_T>(1) << (n_bits-1));
         }
 
         template <typename FLOAT_T>
-        static constexpr unsigned int __get_n_bits_exponent_for_typename() {
+        static constexpr unsigned int __FloatIO_exponent_bits() {
             static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
             return __floorlog2(std::numeric_limits<FLOAT_T>::max_exponent) + 1;
         }
 
         template <typename FLOAT_T>
-        static constexpr unsigned int __get_n_bits_fraction_for_typename() {
+        static constexpr unsigned int __FloatIO_fraction_bits() {
             static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
             return std::numeric_limits<FLOAT_T>::digits - 1;
         }
+
+        template<typename FLOAT_T> struct __FloatIO_container_type { typedef void TYPE; };
+        template<> struct __FloatIO_container_type<float > { typedef std::uint32_t TYPE; };
+        template<> struct __FloatIO_container_type<double> { typedef std::uint64_t TYPE; };
 
         // Compile-time way to check the endianness of the system that is executing the compiler.
         // It's impossible to determine the endianness of the *target* system, so it's necessary to
@@ -154,7 +162,6 @@ namespace NumIO
         static constexpr short _N_ALIGN_BYTES = []{
             if constexpr (N_BITS > 8)
             {
-                // constexpr short N_ALIGN_BYTES = (_N_CONTAINER_BITS - N_BITS) % 16 / 8;
                 constexpr short N_ALIGN_BYTES = (_N_CONTAINER_BITS - N_BITS) / 8;
                 return ALIGNED_V
                     ? N_ALIGN_BYTES
@@ -166,13 +173,9 @@ namespace NumIO
 
         static constexpr INT_T _VALUE_MASK = []{
             if (_N_CONTAINER_BITS == N_BITS) {
-                return ~static_cast<INT_T>(0);
+                return static_cast<INT_T>(~static_cast<INT_T>(0));
             }
-            INT_T mask = 0;
-            for (int i=0; i<N_BITS; i++) {
-                mask |= (static_cast<INT_T>(1) << i);
-            }
-            return mask;
+            return __unsigned_max<INT_T>(N_BITS);
         }();
 
         static constexpr short _get_endianness_offset(Endian endianness)
@@ -196,15 +199,15 @@ namespace NumIO
         public:
 
         ///
-        /// @brief Unpacks an integer from a vector of bytes.
+        /// @brief Unpacks an integer from an array of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
-        /// @param bytes Vector of bytes to read from.
-        /// @param offset Offset in bytes to extract from of the vector.
+        /// @param bytes Array of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the array.
         /// @return Integer value.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static INT_T unpack(std::vector<std::uint8_t>& bytes, const unsigned int offset=0)
+        static INT_T unpack(unsigned char* bytes, std::size_t offset=0)
         {
             INT_T result = 0;
 
@@ -243,6 +246,18 @@ namespace NumIO
         }
 
         ///
+        /// @brief Unpacks an integer from an array of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param bytes Array of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the array.
+        /// @return Integer value.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static INT_T unpack(char* bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(reinterpret_cast<unsigned char*>(bytes), offset); }
+
+        ///
         /// @brief Unpacks an integer from a vector of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
@@ -251,27 +266,36 @@ namespace NumIO
         /// @return Integer value.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static INT_T unpack(std::vector<std::int8_t>& bytes, const unsigned int offset=0)
-        { return unpack<ENDIANNESS_V>(*reinterpret_cast<std::vector<std::uint8_t>*>(&bytes), offset); }
+        static INT_T unpack(std::vector<unsigned char>& bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(bytes.data(), offset); }
+
+        ///
+        /// @brief Unpacks an integer from a vector of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param bytes Vector of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the vector.
+        /// @return Integer value.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static INT_T unpack(std::vector<char>& bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(reinterpret_cast<unsigned char*>(bytes.data()), offset); }
 
 
         // :: PACKING FUNCTIONS :: //
         public:
 
         ///
-        /// @brief Packs an integer from a vector of bytes.
+        /// @brief Packs an integer to an array of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
         /// @param value Input integer value.
-        /// @param bytes Vector of bytes to write to.
+        /// @param bytes Array of bytes to write to.
+        /// @param offset Offset in bytes where to write to the array.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static void pack(INT_T value, std::vector<std::uint8_t>& bytes)
+        static void pack(INT_T value, unsigned char* bytes, std::size_t offset=0)
         {
-            // Extend vector for packed data
-            auto offset = bytes.size();
-            bytes.resize(offset+N_IO_BYTES);
-
             // Isolate the bits that we're interested in
             value &= _VALUE_MASK;
 
@@ -281,27 +305,55 @@ namespace NumIO
             if constexpr (endianness_offset) // Reversed order
             {
                 for (short i=0; i<_N_DATA_BYTES; i++)
-                    bytes[endianness_offset-i] = static_cast<std::uint8_t>((value >> (i * 8)) & 0xFF);
+                    bytes[endianness_offset-i+offset] = static_cast<unsigned char>((value >> (i * 8)) & 0xFF);
             }
             else
             {
                 for (short i=0; i<N_IO_BYTES; i++)
-                    bytes[i] = static_cast<std::uint8_t>((value >> (i * 8)) & 0xFF);
+                    bytes[i+offset] = static_cast<unsigned char>((value >> (i * 8)) & 0xFF);
             }
 
             return;
         }
 
         ///
-        /// @brief Packs an integer from a vector of bytes.
+        /// @brief Packs an integer to an array of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param value Input integer value.
+        /// @param bytes Array of bytes to write to.
+        /// @param offset Offset in bytes where to write to the array.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static void pack(INT_T value, char* bytes, std::size_t offset=0)
+        { pack<ENDIANNESS_V>(value, reinterpret_cast<unsigned char*>(bytes), offset); }
+
+        ///
+        /// @brief Packs an integer to a vector of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
         /// @param value Input integer value.
         /// @param bytes Vector of bytes to write to.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static void pack(INT_T value, std::vector<std::int8_t>& bytes)
-        { pack<ENDIANNESS_V>(value, *reinterpret_cast<std::vector<std::uint8_t>*>(&bytes)); }
+        static void pack(INT_T value, std::vector<unsigned char>& bytes)
+        {
+            // Extend vector for packed data
+            auto offset = bytes.size();
+            bytes.resize(offset+N_IO_BYTES);
+            pack<ENDIANNESS_V>(value, bytes.data(), offset);
+        }
+
+        ///
+        /// @brief Packs an integer to a vector of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param value Input integer value.
+        /// @param bytes Vector of bytes to write to.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static void pack(INT_T value, std::vector<char>& bytes)
+        { pack<ENDIANNESS_V>(value, *reinterpret_cast<std::vector<unsigned char>*>(&bytes)); }
 
 
         // :: I/O FUNCTIONS :: //
@@ -317,9 +369,9 @@ namespace NumIO
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
         static INT_T read(std::istream& s)
         {
-            std::vector<std::uint8_t> buffer(N_IO_BYTES);
-            s.read(reinterpret_cast<char*>(buffer.data()), N_IO_BYTES);
-            return unpack<ENDIANNESS_V>(buffer, 0);
+            unsigned char buffer[N_IO_BYTES] = { 0 };
+            s.read(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+            return unpack<ENDIANNESS_V>(&buffer[0], 0);
         }
 
         ///
@@ -332,9 +384,8 @@ namespace NumIO
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
         static void write(INT_T value, std::ostream& s)
         {
-            std::vector<std::uint8_t> buffer;
-            buffer.reserve(N_IO_BYTES);
-            pack<ENDIANNESS_V>(value, buffer);
+            unsigned char buffer[N_IO_BYTES] = { 0 };
+            pack<ENDIANNESS_V>(value, &buffer[0], 0);
             s.write(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
             return;
         }
@@ -354,14 +405,16 @@ namespace NumIO
     ///         the intermediate storage type `INT_IO_T`.
     ///
     template <typename FLOAT_T,
-              typename INT_IO_T,
-              unsigned int N_BITS_EXPONENT=__get_n_bits_exponent_for_typename<FLOAT_T>(),
-              unsigned int N_BITS_FRACTION=__get_n_bits_fraction_for_typename<FLOAT_T>(),
+              typename INT_IO_T=typename __FloatIO_container_type<FLOAT_T>::TYPE,
+              unsigned int N_BITS_EXPONENT=__FloatIO_exponent_bits<FLOAT_T>(),
+              unsigned int N_BITS_FRACTION=__FloatIO_fraction_bits<FLOAT_T>(),
               bool ALIGNED_V=NUMIO_DEFAULT_ALIGN_V
              >
     class FloatIO
     {
         static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
+
+        static_assert(!std::is_same<INT_IO_T, void>::value, "Template parameter INT_IO_T must be manually assigned for non-standard float type!");
         static_assert(std::is_integral_v<INT_IO_T>, "Template parameter INT_IO_T must be an integer type!");
 
 
@@ -398,15 +451,15 @@ namespace NumIO
         public:
 
         ///
-        /// @brief Unpacks a float from a vector of bytes.
+        /// @brief Unpacks a float from an array of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
-        /// @param bytes Vector of bytes to read from.
-        /// @param offset Offset in bytes to extract from of the vector.
+        /// @param bytes Array of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the array.
         /// @return Float value.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static FLOAT_T unpack(std::vector<std::uint8_t>& bytes, const unsigned int offset=0)
+        static FLOAT_T unpack(unsigned char* bytes, std::size_t offset=0)
         {
             INT_IO_T binary_data = _INTIO_TYPE::template unpack<ENDIANNESS_V>(bytes, offset);
 
@@ -433,7 +486,6 @@ namespace NumIO
             // This means this number does not have an assumed leading one before the binary point.
             int denormalized_adjust = (exponent != 0) & 1;
 
-
             FLOAT_T result = (
                 std::pow(2.0, -EXPONENT_BIAS + exponent + 1 - denormalized_adjust) // or use math.exp2(x)
                 * (denormalized_adjust + static_cast<FLOAT_T>(fraction_numerator)/FRACTION_DENOMINATOR)
@@ -444,6 +496,18 @@ namespace NumIO
         }
 
         ///
+        /// @brief Unpacks a float from an array of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param bytes Array of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the array.
+        /// @return Float value.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static FLOAT_T unpack(char* bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(reinterpret_cast<unsigned char*>(bytes), offset); }
+
+        ///
         /// @brief Unpacks a float from a vector of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
@@ -452,22 +516,35 @@ namespace NumIO
         /// @return Float value.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static FLOAT_T unpack(std::vector<std::int8_t>& bytes, const unsigned int offset=0)
-        { return unpack<ENDIANNESS_V>(*reinterpret_cast<std::vector<std::uint8_t>*>(&bytes), offset); }
+        static FLOAT_T unpack(std::vector<unsigned char>& bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(bytes.data(), offset); }
+
+        ///
+        /// @brief Unpacks a float from a vector of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param bytes Vector of bytes to read from.
+        /// @param offset Offset in bytes to extract from of the vector.
+        /// @return Float value.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static FLOAT_T unpack(std::vector<char>& bytes, std::size_t offset=0)
+        { return unpack<ENDIANNESS_V>(reinterpret_cast<unsigned char*>(bytes.data()), offset); }
 
 
         // :: PACKING FUNCTIONS :: //
         public:
 
         ///
-        /// @brief Packs a float from a vector of bytes.
+        /// @brief Packs a float to an array of bytes.
         ///
         /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
         /// @param value Input float value.
-        /// @param bytes Vector of bytes to write to.
+        /// @param bytes Array of bytes to write to.
+        /// @param offset Offset in bytes where to write to the array.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static void pack(FLOAT_T value, std::vector<std::uint8_t>& bytes)
+        static void pack(FLOAT_T value, unsigned char* bytes, std::size_t offset=0)
         {
             int sign = 0;
             int exponent = 0; // int since frexp() expects int as argument. No floating point format comes close to needing more than 32 bits for exponent
@@ -493,13 +570,9 @@ namespace NumIO
             else
             {
                 // Extract sign bit and make input value absolute if negative
-                // Note that
                 if (value < 0.0) {
                     sign = 1;
                     value = -value;
-                }
-                else {
-                    sign = 0;
                 }
 
                 FLOAT_T fraction = std::frexp(value, &exponent);
@@ -554,9 +627,37 @@ namespace NumIO
                                    (static_cast<INT_IO_T>(exponent & EXPONENT_MASK) << N_BITS_FRACTION) |
                                    (fraction_numerator & FRACTION_MASK);
 
-            _INTIO_TYPE::template pack<ENDIANNESS_V>(binary_data, bytes);
+            _INTIO_TYPE::template pack<ENDIANNESS_V>(binary_data, bytes, offset);
 
             return;
+        }
+
+        ///
+        /// @brief Packs a float to an array of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param value Input float value.
+        /// @param bytes Array of bytes to write to.
+        /// @param offset Offset in bytes where to write to the array.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static void pack(FLOAT_T value, char* bytes, std::size_t offset=0)
+        { pack<ENDIANNESS_V>(value, reinterpret_cast<unsigned char*>(bytes), offset); }
+
+        ///
+        /// @brief Packs a float from a vector of bytes.
+        ///
+        /// @tparam ENDIANNESS_V Defines the endianness of the data to process.
+        /// @param value Input float value.
+        /// @param bytes Vector of bytes to write to.
+        ///
+        template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
+        static void pack(FLOAT_T value, std::vector<unsigned char>& bytes)
+        {
+            // Extend vector for packed data
+            auto offset = bytes.size();
+            bytes.resize(offset+N_IO_BYTES);
+            pack<ENDIANNESS_V>(value, bytes.data(), offset);
         }
 
         ///
@@ -567,8 +668,8 @@ namespace NumIO
         /// @param bytes Vector of bytes to write to.
         ///
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
-        static void pack(FLOAT_T value, std::vector<std::int8_t>& bytes)
-        { pack<ENDIANNESS_V>(value, *reinterpret_cast<std::vector<std::uint8_t>*>(&bytes)); }
+        static void pack(FLOAT_T value, std::vector<char>& bytes)
+        { pack<ENDIANNESS_V>(value, *reinterpret_cast<std::vector<unsigned char>*>(&bytes)); }
 
 
         // :: I/O FUNCTIONS :: //
@@ -584,9 +685,9 @@ namespace NumIO
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
         static FLOAT_T read(std::istream& s)
         {
-            std::vector<std::uint8_t> buffer(N_IO_BYTES);
-            s.read(reinterpret_cast<char*>(buffer.data()), N_IO_BYTES);
-            return unpack<ENDIANNESS_V>(buffer, 0);
+            unsigned char buffer[N_IO_BYTES] = { 0 };
+            s.read(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+            return unpack<ENDIANNESS_V>(&buffer[0], 0);
         }
 
         ///
@@ -599,9 +700,8 @@ namespace NumIO
         template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
         static void write(FLOAT_T value, std::ostream& s)
         {
-            std::vector<std::uint8_t> buffer;
-            buffer.reserve(N_IO_BYTES);
-            pack<ENDIANNESS_V>(value, buffer);
+            unsigned char buffer[N_IO_BYTES] = { 0 };
+            pack<ENDIANNESS_V>(value, &buffer[0], 0);
             s.write(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
             return;
         }
