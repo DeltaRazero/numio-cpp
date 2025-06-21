@@ -34,7 +34,7 @@ You can then include `numio.hpp` or `numio/native.hpp` if you are targetting a s
 
 ## Usage
 
-The `NumIO` namespace provides two main template classes: `IntIO` for integer data I/O and `FloatIO` for floating-point data I/O.
+The `numio` namespace provides two main template classes: `IntIO` for integer data I/O and `FloatIO` for floating-point data I/O.
 
 Following is a short description of features.
 
@@ -45,25 +45,25 @@ The methods `unpack` and `pack` have overloads to support either `std::vector` o
 
 ```cpp
 std::vector<std::uint8_t> data_bytes = {0x01, 0x02, 0x03, 0x04};
-int unpacked_value = NumIO::IntIO<std::int32_t>::unpack(data_bytes);
+int unpacked_value = numio::IntIO<std::int32_t>::unpack(data_bytes);
 
 std::vector<std::uint8_t> data_bytes;
-NumIO::IntIO<std::int32_t>::pack(1234, data_bytes);
+numio::IntIO<std::int32_t>::pack(1234, data_bytes);
 ```
 
 ### Reading/Writing with Streams
 
 ```cpp
 std::ifstream input_file("input.bin", std::ios::binary);
-std::int32_t value = NumIO::IntIO<std::int32_t>::read(input_file);
+std::int32_t value = numio::IntIO<std::int32_t>::read(input_file);
 
 std::ofstream output_file("output.bin", std::ios::binary);
-NumIO::IntIO<std::int32_t>::write(value, output_file);
+numio::IntIO<std::int32_t>::write(value, output_file);
 ```
 
 ### Endianness
 
-The `ENDIANNESS_V` template parameter is used to specify the byte order of the data when (un)packing. The data is written correctly regardless of the system's native endianness. Expects a value from the enum class `NumIO::Endian`, which defines the following values:
+The `ENDIANNESS_V` template parameter is used to specify the byte order of the data when (un)packing. The data is written correctly regardless of the system's native endianness. Expects a value from the enum class `numio::Endian`, which defines the following values:
 
 * `Endian::LITTLE`: Specifies little-endian byte order, where the least significant byte is stored first (common on x86 and x86-64 architectures).
 * `Endian::BIG`: Specifies big-endian byte order, where the most significant byte is stored first (common on some older architectures like Motorola 68k and in network protocols).
@@ -90,20 +90,20 @@ The `numio/std.hpp` header provides standardized aliases for common data types. 
 
 | **Length**       | **Signed Type**  | **Unsigned Type**  |
 |------------------|------------------|--------------------|
-| 8-bit            | `NumIO::i8_io`   | `NumIO::u8_io`     |
-| 16-bit           | `NumIO::i16_io`  | `NumIO::u16_io`    |
-| 24-bit (packed)  | `NumIO::i24_io`  | `NumIO::u24_io`    |
-| 24-bit (aligned) | `NumIO::i24a_io` | `NumIO::u24a_io`   |
-| 32-bit           | `NumIO::i32_io`  | `NumIO::u32_io`    |
-| 64-bit           | `NumIO::i64_io`  | `NumIO::u64_io`    |
+| 8-bit            | `numio::i8_io`   | `numio::u8_io`     |
+| 16-bit           | `numio::i16_io`  | `numio::u16_io`    |
+| 24-bit (packed)  | `numio::i24_io`  | `numio::u24_io`    |
+| 24-bit (aligned) | `numio::i24a_io` | `numio::u24a_io`   |
+| 32-bit           | `numio::i32_io`  | `numio::u32_io`    |
+| 64-bit           | `numio::i64_io`  | `numio::u64_io`    |
 
 #### Floating-Point Types (IEEE 754)
 
 | **Precision**     | **Type**         |
 |-------------------|------------------|
-| 16-bit (`float`)  | `NumIO::fp16_io` |
-| 32-bit (`float`)  | `NumIO::fp32_io` |
-| 64-bit (`double`) | `NumIO::fp64_io` |
+| 16-bit (`float`)  | `numio::fp16_io` |
+| 32-bit (`float`)  | `numio::fp32_io` |
+| 64-bit (`double`) | `numio::fp64_io` |
 
 #### Floating-Point Extra Types
 
@@ -111,14 +111,14 @@ Extra floating-point types, defined in `numio/fp_extra.hpp`.
 
 | **Precision**                   | **Type**             |
 |---------------------------------|----------------------|
-| Google Brain bfloat16 (`float`) | `NumIO::bf16_io`     |
-| NVidia TensorFloat (`float`)    | `NumIO::nv_tf32_io`  |
-| AMD fp24 (`float`)              | `NumIO::amd_fp24_io` |
-| Pixar PXR24 (`float`)           | `NumIO::pxr24_io`    |
+| Google Brain bfloat16 (`float`) | `numio::bf16_io`     |
+| NVidia TensorFloat (`float`)    | `numio::nv_tf32_io`  |
+| AMD fp24 (`float`)              | `numio::amd_fp24_io` |
+| Pixar PXR24 (`float`)           | `numio::pxr24_io`    |
 
 ### Custom Formats
 
-In addition to the default integer types supported in C++, NumIO supports custom integer and floating-point formats with specified bit widths and alignment. This allows you to work with non-standard type representations. To work with custom formats, you can use the IntIO/FloatIO class and provide the necessary template parameters.
+In addition to the default integer types supported in C++, numio supports custom integer and floating-point formats with specified bit widths and alignment. This allows you to work with non-standard type representations. To work with custom formats, you can use the IntIO/FloatIO class and provide the necessary template parameters.
 
 #### Integer Formats
 
@@ -134,7 +134,7 @@ Example with a 12-bit integer:
 
 ```cpp
 // Define I/O for unsigned 12-bit integer and aligned to 4 bytes
-using uint12_io = NumIO::IntIO<uint32_t, 12, true>;
+using uint12_io = numio::IntIO<uint32_t, 12, true>;
 
 std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34}; // Represents a 12-bit integer value
 uint32_t unpacked_value = uint12_io::unpack(data_bytes);
@@ -166,7 +166,7 @@ float unpacked_value = bf16_io::unpack(data_bytes);
 
 You can customize default behaviour by defining the following macros before including `numio.hpp`:
 
-* `NUMIO_DEFAULT_ENDIAN_V`: Set the default endianness for (un)packing data when not explicitly setting the method template parameter `ENDIANNESS_V` (default is `NumIO::Endian::LITTLE`).
+* `NUMIO_DEFAULT_ENDIAN_V`: Set the default endianness for (un)packing data when not explicitly setting the method template parameter `ENDIANNESS_V` (default is `numio::Endian::LITTLE`).
 * `NUMIO_DEFAULT_ALIGN_V`: Set the default byte alignment for (un)packing data when not explicitly setting the class template parameter `ALIGNED_V` (default is `false`).
 
 

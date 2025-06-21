@@ -6,7 +6,7 @@
 #include <cstdint>
 #include "../numio.hpp"
 
-namespace NumIO
+namespace numio
 {
     using  i8_io  = IntIO<std:: int8_t>;
     using i16_io  = IntIO<std::int16_t>;

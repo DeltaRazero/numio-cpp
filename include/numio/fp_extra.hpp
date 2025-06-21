@@ -6,7 +6,7 @@
 #include <cstdint>
 #include "../numio.hpp"
 
-namespace NumIO
+namespace numio
 {
     /// @brief Google Brain bfloat16 (brain floating point)
     using bf16_io = FloatIO<float, std::uint16_t, 8, 7>;

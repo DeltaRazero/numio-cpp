@@ -17,8 +17,8 @@
 ///
 /// @brief Flexible C++17 set of template classes for platform-agnostic integer and float data I/O.
 ///
-/// @param NUMIO_DEFAULT_ENDIAN_V `NumIO::Endian` macro parameter setting the default endianness for (un)packing data
-///        when not explicitly specified by the user. Defaults to `NumIO::Endian::LITTLE`.
+/// @param NUMIO_DEFAULT_ENDIAN_V `numio::Endian` macro parameter setting the default endianness for (un)packing data
+///        when not explicitly specified by the user. Defaults to `numio::Endian::LITTLE`.
 /// @param NUMIO_DEFAULT_ALIGN_V Boolean macro parameter setting the default byte alignment for (un)packing data when
 ///        not explicitly specified by the user. Defaults to `false`.
 /// @param NUMIO_SYSTEM_ENDIANNESS_V Integer macro parameter defining the target system endianness. Defaults to the
@@ -29,7 +29,7 @@
 /// @param NUMIO_IS_SYSTEM_LITTLE_ENDIAN_V Boolean macro parameter alternative to `NUMIO_SYSTEM_ENDIANNESS_V` for
 ///        defining the target system endianness.
 ///
-namespace NumIO
+namespace numio
 {
     namespace {
         // Quick and dirty constexpr ceil function for positive numbers, since ceil is officially not
@@ -113,7 +113,7 @@ namespace NumIO
     }
 
     ///
-    /// @brief Endian modes supported by NumIO.
+    /// @brief Endian modes supported by numio.
     ///
     enum class Endian
     {

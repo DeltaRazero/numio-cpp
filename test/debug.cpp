@@ -10,7 +10,7 @@
 #include <sstream>
 
 #include "../include/numio/native.hpp"
-using namespace NumIO;
+using namespace numio;
 
 // ****************************************************************************
 
