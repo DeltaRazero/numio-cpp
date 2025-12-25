@@ -389,10 +389,10 @@ namespace numio
     ///         the intermediate storage type `INT_IO_T`.
     ///
     template <typename FLOAT_T,
-              typename INT_IO_T=typename __FloatIO_container_type<FLOAT_T>::TYPE,
-              bool ALIGNED_V=NUMIO_DEFAULT_ALIGN_V
               unsigned int N_BITS_EXPONENT=(sizeof(FLOAT_T)*8 - std::numeric_limits<FLOAT_T>::digits-1 - 1),
               unsigned int N_BITS_FRACTION=(std::numeric_limits<FLOAT_T>::digits-1),
+              bool ALIGNED_V=NUMIO_DEFAULT_ALIGN_V,
+              typename INT_IO_T=typename __FloatIO_container_type<FLOAT_T>::TYPE
              >
     class FloatIO
     {
