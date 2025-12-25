@@ -6,6 +6,7 @@
 #include <climits>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -561,7 +562,11 @@ namespace numio
 
                 FLOAT_T fraction = std::frexp(value, &exponent);
                 if (fraction < 0.5 || fraction >= 1.0) {
-                    throw std::runtime_error("frexp() result out of range!");
+                    #if (__cpp_exceptions == 199711)
+                        throw std::runtime_error("frexp() result out of range!");
+                    #else
+                        std::abort();
+                    #endif
                 }
 
                 // Normalize fraction to be in the range [1.0, 2.0]
@@ -569,7 +574,11 @@ namespace numio
                 exponent -= 1;
 
                 if (exponent > EXPONENT_MAX) {
-                    throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+                    #if (__cpp_exceptions == 199711)
+                        throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+                    #else
+                        std::abort();
+                    #endif
                 }
                 else if (exponent < MIN_VAL_EXPONENT_NORMALIZED) {
                     // Underflow to zero
@@ -586,7 +595,11 @@ namespace numio
                     fraction -= 1.0; // Get rid of leading 1
                 }
                 else {
-                    throw std::runtime_error("Reached an invalid or unsupported scenario while packing floating point value!");
+                    #if (__cpp_exceptions == 199711)
+                        throw std::runtime_error("Reached an invalid or unsupported scenario while packing floating point value!");
+                    #else
+                        std::abort();
+                    #endif
                 }
 
                 fraction *= FRACTION_DENOMINATOR; // Turn into fractional numerator
@@ -601,7 +614,11 @@ namespace numio
                         fraction_numerator = 0;
                         exponent += 1;
                         if (exponent >= EXPONENT_MASK) {
-                            throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+                            #if (__cpp_exceptions == 199711)
+                                throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+                            #else
+                                std::abort();
+                            #endif
                         }
                     }
                 }
