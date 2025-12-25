@@ -43,26 +43,10 @@ namespace numio
             return i;
         };
 
-        // https://stackoverflow.com/a/23782939
-        static constexpr unsigned int __floorlog2(unsigned int x)
-        { return x == 1 ? 0 : 1+__floorlog2(x >> 1); }
-
         template<typename INT_T>
         static constexpr INT_T __unsigned_max(unsigned int n_bits) {
             static_assert(std::is_integral_v<INT_T>, "Template parameter INT_T must be an int type!");
             return (static_cast<INT_T>(1) << (n_bits-1)) - 1 + (static_cast<INT_T>(1) << (n_bits-1));
-        }
-
-        template <typename FLOAT_T>
-        static constexpr unsigned int __FloatIO_exponent_bits() {
-            static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
-            return __floorlog2(std::numeric_limits<FLOAT_T>::max_exponent) + 1;
-        }
-
-        template <typename FLOAT_T>
-        static constexpr unsigned int __FloatIO_fraction_bits() {
-            static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
-            return std::numeric_limits<FLOAT_T>::digits - 1;
         }
 
         template<typename FLOAT_T> struct __FloatIO_container_type { typedef void TYPE; };
@@ -406,9 +390,9 @@ namespace numio
     ///
     template <typename FLOAT_T,
               typename INT_IO_T=typename __FloatIO_container_type<FLOAT_T>::TYPE,
-              unsigned int N_BITS_EXPONENT=__FloatIO_exponent_bits<FLOAT_T>(),
-              unsigned int N_BITS_FRACTION=__FloatIO_fraction_bits<FLOAT_T>(),
               bool ALIGNED_V=NUMIO_DEFAULT_ALIGN_V
+              unsigned int N_BITS_EXPONENT=(sizeof(FLOAT_T)*8 - std::numeric_limits<FLOAT_T>::digits-1 - 1),
+              unsigned int N_BITS_FRACTION=(std::numeric_limits<FLOAT_T>::digits-1),
              >
     class FloatIO
     {
