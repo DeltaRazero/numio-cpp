@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.14)
 # Project declaration.
 project(
   numio
-  VERSION 1.3.0
-  DESCRIPTION "Template classes for flexible and platform-agnostic integer and floating-point data I/O. "
+  VERSION 1.4.0
+  DESCRIPTION "Template classes for flexible and portable integer and floating-point data I/O. "
   LANGUAGES CXX
 )
 

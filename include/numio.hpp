@@ -8,9 +8,18 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
-#include <stdexcept>
 #include <type_traits>
 #include <vector>
+
+#if defined(__STDCPP_FLOAT16_T__) || defined(__STDCPP_FLOAT32_T__) || defined(__STDCPP_FLOAT64_T__) || defined(__STDCPP_FLOAT128_T__) || defined(__STDCPP_BFLOAT16_T__)
+  #include <stdfloat>
+#endif
+
+#if (defined(NUMIO_ENABLE_EXCEPTIONS) && __cpp_exceptions == 199711)
+  #include <stdexcept>
+#else
+  #undef NUMIO_ENABLE_EXCEPTIONS
+#endif
 
 // *****************************************************************************
 
@@ -28,40 +37,21 @@
 ///    - `BIG_ENDIAN` or as integer value `4321`
 /// @param NUMIO_IS_SYSTEM_LITTLE_ENDIAN_V Boolean macro parameter alternative to `NUMIO_SYSTEM_ENDIANNESS_V` for
 ///   defining the target system endianness.
+/// @param NUMIO_ENABLE_EXCEPTIONS Defining this macro enables runtime checking and exceptions, which should be used
+///   mainly for debug or test builds.
 ///
 namespace numio {
 
 // *****************************************************************************
 
 namespace {
-  // Quick and dirty constexpr ceil function for positive numbers, since ceil is officially not
-  // constexpr before C++23 but GCC implemented it anyways already
-  static constexpr int __positive_ceil(float f)
-  {
-    int i = static_cast<int>(f);
-    if (f != static_cast<int>(i)) {
-      i++;
-    }
-    return i;
-  };
-
-  template<typename INT_T>
-  static constexpr INT_T __unsigned_max(unsigned int n_bits) {
-    static_assert(std::is_integral_v<INT_T>, "Template parameter INT_T must be an int type!");
-    return (static_cast<INT_T>(1) << (n_bits-1)) - 1 + (static_cast<INT_T>(1) << (n_bits-1));
-  }
-
-  template<typename FLOAT_T> struct __FloatIO_container_type { typedef void TYPE; };
-  template<> struct __FloatIO_container_type<float > { typedef std::uint32_t TYPE; };
-  template<> struct __FloatIO_container_type<double> { typedef std::uint64_t TYPE; };
-
   // Compile-time way to check the endianness of the system that is executing the compiler.
   // It's impossible to determine the endianness of the *target* system, so it's necessary to
   // define NUMIO_SYSTEM_ENDIANNESS_V or NUMIO_IS_SYSTEM_LITTLE_ENDIAN_V when cross-compiling.
   static constexpr bool __IS_SYSTEM_LITTLE_ENDIAN = []
   {
     // There's some GCC and Clang/LLVM header that sets these, but are not defined on MSVC. Therefore
-    // define these macros temporarily ourselves if not defined
+    // define these macros temporarily ourselves if not defined.
     #if !(defined(LITTLE_ENDIAN) && defined(BIG_ENDIAN))
       #define LITTLE_ENDIAN 1234
       #define BIG_ENDIAN 4321
@@ -84,7 +74,7 @@ namespace {
       #ifndef NUMIO_IGNORE_AUTO_ENDIAN
         #pragma message(\
           "NUMIO_SYSTEM_ENDIANNESS_V or NUMIO_IS_SYSTEM_LITTLE_ENDIAN_V was not set. The endianness of the current system is used instead."\
-          "This message can be surpressed by including \"numio/native.hpp\" or by defining NUMIO_IGNORE_AUTO_ENDIAN."\
+          "This message can be suppressed by including \"numio/native.hpp\" or by defining NUMIO_IGNORE_AUTO_ENDIAN."\
         )
       #endif
       const int value = 1;
@@ -96,7 +86,54 @@ namespace {
       #undef BIG_ENDIAN
     #endif
   }();
+
+  template<typename FLOAT_T> struct __FloatIO_container_type { typedef void type; };
+  template<> struct __FloatIO_container_type<float > { typedef std::uint32_t type; };
+  template<> struct __FloatIO_container_type<double> { typedef std::uint64_t type; };
+  #if defined(__STDCPP_FLOAT16_T__)
+    template<> struct __FloatIO_container_type<std::float16_t> { typedef std::uint16_t type; };
+  #endif
+  #if defined(__STDCPP_FLOAT32_T__)
+    template<> struct __FloatIO_container_type<std::float32_t> { typedef std::uint32_t type; };
+  #endif
+  #if defined(__STDCPP_FLOAT64_T__)
+    template<> struct __FloatIO_container_type<std::float64_t> { typedef std::uint64_t type; };
+  #endif
+  #if defined(__STDCPP_FLOAT128_T__)
+    #if __SIZEOF_INT128__ >= 16
+      template<> struct __FloatIO_container_type<std::float128_t> { typedef __uint128_t type; };
+    #elif defined(BOOST_INT128_UINT128_C)
+      template<> struct __FloatIO_container_type<std::float128_t> { typedef boost::int128::uint128_t type; };
+    #endif
+  #endif
+  #if defined(__STDCPP_BFLOAT16_T__)
+    template<> struct __FloatIO_container_type<std::bfloat16_t> { typedef std::uint16_t type; };
+  #endif
+
+  // Quick and dirty constexpr ceil function for positive numbers since `ceil()`
+  // is not a standardized constexpr function before C++23.
+  static constexpr int __positive_ceil(float f)
+  {
+    auto i = static_cast<int>(f);
+    return static_cast<bool>(f != i)
+      ? i + 1
+      : i;
+  };
+
+  template<typename INT_T>
+  static constexpr INT_T __unsigned_max(unsigned int n_bits) {
+    static_assert(std::is_integral_v<INT_T>, "Template parameter INT_T must be an integer type!");
+    return (static_cast<INT_T>(1) << (n_bits-1)) - 1 + (static_cast<INT_T>(1) << (n_bits-1));
+  }
 }
+
+// *****************************************************************************
+
+#ifdef NUMIO_ENABLE_EXCEPTIONS
+  struct NumIOError : std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
+#endif
 
 ///
 /// @brief Endian modes supported by numio.
@@ -115,6 +152,8 @@ enum class Endian
 #ifndef NUMIO_DEFAULT_ALIGN_V
   #define NUMIO_DEFAULT_ALIGN_V false
 #endif
+
+// *****************************************************************************
 
 ///
 /// @brief Template class for doing integer data I/O.
@@ -141,18 +180,16 @@ class IntIO
   }();
   static_assert(_N_CONTAINER_BITS >= N_BITS, "N_BITS cannot be bigger than the amount of bits that integer container INT_T can store!");
 
-  static constexpr short _N_DATA_BYTES = __positive_ceil(N_BITS / 8.0);
+  static constexpr int _N_DATA_BYTES = __positive_ceil(N_BITS / 8.0);
 
   // Amount of bytes if we need to pad.
-  static constexpr short _N_ALIGN_BYTES = []{
-    if constexpr (N_BITS > 8)
-    {
-      constexpr short N_ALIGN_BYTES = (_N_CONTAINER_BITS - N_BITS) / 8;
-      return ALIGNED_V
-        ? N_ALIGN_BYTES
-        : 0;
+  static constexpr int _N_ALIGN_BYTES = []{
+    if (N_BITS <= 8) {
+      return 0;
     }
-    return 0;
+    return ALIGNED_V
+      ? static_cast<int>(_N_CONTAINER_BITS - N_BITS) / 8
+      : 0;
   }();
 
   static constexpr INT_T _VALUE_MASK = []{
@@ -162,10 +199,10 @@ class IntIO
     return __unsigned_max<INT_T>(N_BITS);
   }();
 
-  static constexpr short _get_endianness_offset(Endian endianness)
+  static constexpr int _get_endianness_offset(Endian endianness)
   {
     return (endianness == Endian::BIG) ^ !__IS_SYSTEM_LITTLE_ENDIAN
-      ? N_IO_BYTES - 1
+      ? AMOUNT_IO_BYTES - 1
       : 0;
   }
 
@@ -175,7 +212,7 @@ class IntIO
   ///
   /// @brief The amount of bytes used for the packed data.
   ///
-  static constexpr int N_IO_BYTES = _N_DATA_BYTES + _N_ALIGN_BYTES;
+  static constexpr int AMOUNT_IO_BYTES = _N_DATA_BYTES + _N_ALIGN_BYTES;
 
   // :: UNPACKING FUNCTIONS :: //
   public:
@@ -196,16 +233,17 @@ class IntIO
     static constexpr auto ENDIANNESS_OFFSET = _get_endianness_offset(ENDIANNESS_V);
 
     // Copy the input bytes into the result.
-    if constexpr (ENDIANNESS_OFFSET) // Reversed order.
-    {
-      for (int i=0; i<_N_DATA_BYTES; i++) {
-        result |= static_cast<INT_T>(bytes[ENDIANNESS_OFFSET-i+offset]) << (i * 8);
-      }
-    }
-    else
+    if constexpr (!ENDIANNESS_OFFSET)
     {
       for (int i=0; i<_N_DATA_BYTES; i++) {
         result |= static_cast<INT_T>(bytes[i+offset]) << (i * 8);
+      }
+    }
+    // Reversed order.
+    else
+    {
+      for (int i=0; i<_N_DATA_BYTES; i++) {
+        result |= static_cast<INT_T>(bytes[ENDIANNESS_OFFSET-i+offset]) << (i * 8);
       }
     }
 
@@ -219,7 +257,7 @@ class IntIO
         // Sign extend the result number if number should be negative.
         static constexpr unsigned int MSB = ENDIANNESS_OFFSET ? _N_ALIGN_BYTES : _N_DATA_BYTES - 1;
         static constexpr unsigned int SIGN_BIT_MASK = (1 << ((N_BITS % 8) + 7) % 8);
-        result |= (~_VALUE_MASK) * static_cast<bool>((bytes[MSB+offset] & SIGN_BIT_MASK));
+        result |= (~_VALUE_MASK) * static_cast<bool>(bytes[MSB+offset] & SIGN_BIT_MASK);
       }
     }
 
@@ -248,7 +286,14 @@ class IntIO
   ///
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static INT_T unpack(std::vector<unsigned char>& bytes, std::size_t offset=0)
-  { return unpack<ENDIANNESS_V>(bytes.data(), offset); }
+  {
+    #ifdef NUMIO_ENABLE_EXCEPTIONS
+      if (bytes.size() + offset + AMOUNT_IO_BYTES > bytes.size()) {
+        NumIOError("Out of bounds access of input vector `bytes`!");
+      }
+    #endif
+    return unpack<ENDIANNESS_V>(bytes.data(), offset);
+  }
 
   ///
   /// @brief Unpacks an integer from a vector of bytes.
@@ -282,16 +327,18 @@ class IntIO
     constexpr auto ENDIANNESS_OFFSET = _get_endianness_offset(ENDIANNESS_V);
 
     // Copy the bits into the byte vector.
-    if constexpr (ENDIANNESS_OFFSET) // Reversed order.
+    if constexpr (!ENDIANNESS_OFFSET)
+    {
+      for (int i=0; i<AMOUNT_IO_BYTES; i++) {
+        bytes[i+offset] = static_cast<unsigned char>((value >> (i * 8)) & 0xFF);
+      }
+    }
+    // Reversed order.
+    else
     {
       for (int i=0; i<_N_DATA_BYTES; i++) {
         bytes[ENDIANNESS_OFFSET-i+offset] = static_cast<unsigned char>((value >> (i * 8)) & 0xFF);
       }
-    }
-    else
-    {
-      for (int i=0; i<N_IO_BYTES; i++)
-        bytes[i+offset] = static_cast<unsigned char>((value >> (i * 8)) & 0xFF);
     }
 
     return;
@@ -321,7 +368,7 @@ class IntIO
   {
     // Extend vector for packed data.
     auto offset = bytes.size();
-    bytes.resize(offset+N_IO_BYTES);
+    bytes.resize(offset+AMOUNT_IO_BYTES);
     pack<ENDIANNESS_V>(value, bytes.data(), offset);
   }
 
@@ -349,8 +396,16 @@ class IntIO
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static INT_T read(std::istream& s)
   {
-    unsigned char buffer[N_IO_BYTES] = { 0 };
-    s.read(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+    unsigned char buffer[AMOUNT_IO_BYTES] = { 0 };
+    #ifdef NUMIO_ENABLE_EXCEPTIONS
+      auto current_pos = s.tellg();
+      s.read(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
+      if (s.tellg() - current_pos < AMOUNT_IO_BYTES) {
+        NumIOError("Unexpected end of stream!");
+      }
+    #else
+      s.read(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
+    #endif
     return unpack<ENDIANNESS_V>(&buffer[0], 0);
   }
 
@@ -364,57 +419,60 @@ class IntIO
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static void write(INT_T value, std::ostream& s)
   {
-    unsigned char buffer[N_IO_BYTES] = { 0 };
+    unsigned char buffer[AMOUNT_IO_BYTES] = { 0 };
     pack<ENDIANNESS_V>(value, &buffer[0], 0);
-    s.write(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+    s.write(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
     return;
   }
 };
+
+// *****************************************************************************
 
 ///
 /// @brief Template class for doing floating point data I/O.
 ///
 /// @tparam FLOAT_T Float type to (un)pack.
-/// @tparam INT_IO_T Integer type used as intermediate storage for I/O retrieval and storage.
 /// @tparam N_BITS_EXPONENT Specifies the amount of bits of the exponent part of the floating point data. Defaults to an
 ///         automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
 /// @tparam N_BITS_FRACTION Specifies the amount of bits of the fraction part of the floating point data. Defaults to an
 ///         automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
 /// @tparam ALIGNED_V Specifies if the data to (un)pack is aligned to match up with the amount of bytes as used by
-///         the intermediate storage type `INT_IO_T`.
+///         the intermediate storage type `UINT_IO_T`.
+/// @tparam UINT_IO_T Unsigned integer type used as intermediate storage for I/O retrieval and storage.
 ///
 template <
   typename FLOAT_T,
   unsigned int N_BITS_EXPONENT=(sizeof(FLOAT_T)*8 - (std::numeric_limits<FLOAT_T>::digits-1) - 1),
   unsigned int N_BITS_FRACTION=(std::numeric_limits<FLOAT_T>::digits-1),
   bool ALIGNED_V=NUMIO_DEFAULT_ALIGN_V,
-  typename INT_IO_T=typename __FloatIO_container_type<FLOAT_T>::TYPE
+  typename UINT_IO_T=typename __FloatIO_container_type<FLOAT_T>::type
 >
 class FloatIO
 {
   static_assert(std::is_floating_point_v<FLOAT_T>, "Template parameter FLOAT_T must be a float type!");
 
-  static_assert(!std::is_same<INT_IO_T, void>::value, "Template parameter INT_IO_T must be manually assigned for non-standard float type!");
-  static_assert(std::is_integral_v<INT_IO_T>, "Template parameter INT_IO_T must be an integer type!");
+  static_assert(!std::is_same<UINT_IO_T, void>::value, "Template parameter UINT_IO_T must be manually assigned for non-standard float type!");
+  static_assert(std::is_integral_v<UINT_IO_T>, "Template parameter UINT_IO_T must be an integer type!");
+  static_assert(std::is_unsigned_v<UINT_IO_T>, "Template parameter UINT_IO_T must be an unsigned integer type!");
 
   // :: PRIVATE ATTRIBUTES ::
   private:
 
-  // Takes care of asserting amount of bits not being more than being able to be stored by FLOAT_T and INT_IO_T
-  using _INTIO_TYPE = IntIO<INT_IO_T, (1+N_BITS_EXPONENT+N_BITS_FRACTION), ALIGNED_V>;
+  // Takes care of asserting amount of bits not being more than being able to be stored by FLOAT_T and UINT_IO_T.
+  using _INTIO_TYPE = IntIO<UINT_IO_T, (1+N_BITS_EXPONENT+N_BITS_FRACTION), ALIGNED_V>;
 
-  static constexpr short _N_DATA_BYTES = sizeof(FLOAT_T);
+  static constexpr int _N_DATA_BYTES = sizeof(FLOAT_T);
 
-  static constexpr int EXPONENT_MASK = (static_cast<int>(1) << N_BITS_EXPONENT) - 1;
-  static constexpr INT_IO_T FRACTION_MASK = (static_cast<INT_IO_T>(1) << N_BITS_FRACTION) - 1;
+  static constexpr int _EXPONENT_MASK = (static_cast<int>(1) << N_BITS_EXPONENT) - 1;
+  static constexpr UINT_IO_T _FRACTION_MASK = (static_cast<UINT_IO_T>(1) << N_BITS_FRACTION) - 1;
 
-  static constexpr int EXPONENT_BIAS = (static_cast<int>(1) << (N_BITS_EXPONENT - 1)) - 1;
-  static constexpr INT_IO_T FRACTION_DENOMINATOR = FRACTION_MASK + 1;
+  static constexpr int _EXPONENT_BIAS = (static_cast<int>(1) << (N_BITS_EXPONENT - 1)) - 1;
+  static constexpr UINT_IO_T _FRACTION_DENOMINATOR = _FRACTION_MASK + 1;
 
-  static constexpr int EXPONENT_MAX = EXPONENT_BIAS;
-  static constexpr int EXPONENT_MIN = -EXPONENT_BIAS + 1;
+  static constexpr int _EXPONENT_MAX = +_EXPONENT_BIAS;
+  static constexpr int _EXPONENT_MIN = -_EXPONENT_BIAS + 1;
 
-  static constexpr int MIN_VAL_EXPONENT_NORMALIZED = EXPONENT_MIN - N_BITS_FRACTION - 1; // -1 for normalized
+  static constexpr int _MIN_VAL_EXPONENT_NORMALIZED = _EXPONENT_MIN - N_BITS_FRACTION - 1;
 
   // :: PUBLIC ATTRIBUTES :: //
   public:
@@ -422,7 +480,7 @@ class FloatIO
   ///
   /// @brief The amount of bytes used for the packed data.
   ///
-  const static int N_IO_BYTES = _N_DATA_BYTES;
+  const static int AMOUNT_IO_BYTES = _N_DATA_BYTES;
 
   // :: UNPACKING FUNCTIONS :: //
   public:
@@ -438,20 +496,19 @@ class FloatIO
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static FLOAT_T unpack(unsigned char* bytes, std::size_t offset=0)
   {
-    INT_IO_T binary_data = _INTIO_TYPE::template unpack<ENDIANNESS_V>(bytes, offset);
+    UINT_IO_T binary_data = _INTIO_TYPE::template unpack<ENDIANNESS_V>(bytes, offset);
 
-    INT_IO_T fraction_numerator = binary_data & FRACTION_MASK;
-    int exponent = (binary_data >> N_BITS_FRACTION) & EXPONENT_MASK;
+    UINT_IO_T fraction_numerator = binary_data & _FRACTION_MASK;
+    int exponent = static_cast<int>(binary_data >> N_BITS_FRACTION) & _EXPONENT_MASK;
 
     // Multiply result with this to make negative if sign bit set.
     int apply_sign = 1 - (
-      // unsigned char sign = (binary_data >> (FRACTION_BITS + EXPONENT_BITS)) & 1;
       ((binary_data >> (N_BITS_FRACTION + N_BITS_EXPONENT)) & 1)
       * 2
     );
 
     // Special values.
-    if (exponent == EXPONENT_MASK) {
+    if (exponent == _EXPONENT_MASK) {
       return fraction_numerator == 0
         ? std::numeric_limits<FLOAT_T>::infinity() * apply_sign
         : std::numeric_limits<FLOAT_T>::quiet_NaN();
@@ -462,8 +519,8 @@ class FloatIO
     int denormalized_adjust = (exponent != 0) & 1;
 
     FLOAT_T result = (
-      std::pow(2.0, -EXPONENT_BIAS + exponent + 1 - denormalized_adjust) // or use math.exp2(x).
-      * (denormalized_adjust + static_cast<FLOAT_T>(fraction_numerator)/FRACTION_DENOMINATOR)
+      std::pow(2.0, -_EXPONENT_BIAS + exponent + 1 - denormalized_adjust) // or use math.exp2(x).
+      * (denormalized_adjust + static_cast<FLOAT_T>(fraction_numerator)/_FRACTION_DENOMINATOR)
       * apply_sign
     );
 
@@ -492,7 +549,14 @@ class FloatIO
   ///
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static FLOAT_T unpack(std::vector<unsigned char>& bytes, std::size_t offset=0)
-  { return unpack<ENDIANNESS_V>(bytes.data(), offset); }
+  {
+    #ifdef NUMIO_ENABLE_EXCEPTIONS
+      if (bytes.size() + offset + AMOUNT_IO_BYTES > bytes.size()) {
+        NumIOError("Out of bounds access of input vector `bytes`!");
+      }
+    #endif
+    return unpack<ENDIANNESS_V>(bytes.data(), offset);
+  }
 
   ///
   /// @brief Unpacks a float from a vector of bytes.
@@ -524,22 +588,22 @@ class FloatIO
     // frexp() expects int as argument. No floating point format comes close to
     // needing more than 32 bits for exponent.
     int exponent = 0;
-    INT_IO_T fraction_numerator = 0;
+    UINT_IO_T fraction_numerator = 0;
 
     // Special values.
     if (std::isinf(value)) {
-      exponent = EXPONENT_MASK;
+      exponent = _EXPONENT_MASK;
       sign = (value < 0) & 1;
     }
     else if (std::isnan(value)) {
-      exponent = EXPONENT_MASK;
+      exponent = _EXPONENT_MASK;
       // Topmost bit of the fraction is used to set non-signaling/quiet NaN. Signaling NaNs would've
-      // caused exceptions in the program, handled by the FPU. All other bits stay 0
-      fraction_numerator = FRACTION_DENOMINATOR >> 1;
+      // already caused exceptions in the program, handled by the FPU. All other bits stay 0.
+      fraction_numerator = _FRACTION_DENOMINATOR >> 1;
     }
     // NOTE: This condition captures both +0.0 and -0.0.
     else if (value == 0.0) {
-      // Use copysign() to differentiate between 0.0 and -0.0.
+      // Use copysign() to differentiate between +0.0 and -0.0.
       sign = (std::copysign(1.0, value) < 0) & 1; // Ruby .negative? or similar also works.
     }
     // Normal values.
@@ -553,8 +617,8 @@ class FloatIO
 
       FLOAT_T fraction = std::frexp(value, &exponent);
       if (fraction < 0.5 || fraction >= 1.0) {
-        #if (__cpp_exceptions == 199711)
-          throw std::runtime_error("frexp() result out of range!");
+        #ifdef NUMIO_ENABLE_EXCEPTIONS
+          throw NumIOError("frexp() result out of range!");
         #else
           std::abort();
         #endif
@@ -564,53 +628,53 @@ class FloatIO
       fraction *= 2.0;
       exponent -= 1;
 
-      if (exponent > EXPONENT_MAX) {
-        #if (__cpp_exceptions == 199711)
-          throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+      if (exponent > _EXPONENT_MAX) {
+        #ifdef NUMIO_ENABLE_EXCEPTIONS
+          throw NumIOError("The floating point value is too large to be packed into the designated format!");
         #else
           std::abort();
         #endif
       }
-      else if (exponent < MIN_VAL_EXPONENT_NORMALIZED) {
+      else if (exponent < _MIN_VAL_EXPONENT_NORMALIZED) {
         // Underflow to zero.
         fraction = 0;
         exponent = 0;
       }
-      else if (exponent < EXPONENT_MIN) {
+      else if (exponent < _EXPONENT_MIN) {
         // Gradual underflow.
-        fraction = std::ldexp(fraction, -EXPONENT_MIN + exponent);
+        fraction = std::ldexp(fraction, -_EXPONENT_MIN + exponent);
         exponent = 0;
       }
       else if (!(exponent == 0 && fraction == 0.0)) {
-        exponent += EXPONENT_BIAS;
+        exponent += _EXPONENT_BIAS;
         // Get rid of leading 1.
         fraction -= 1.0;
       }
       else {
-        #if (__cpp_exceptions == 199711)
-          throw std::runtime_error("Reached an invalid or unsupported scenario while packing floating point value!");
+        #ifdef NUMIO_ENABLE_EXCEPTIONS
+          throw NumIOError("Reached an invalid or unsupported scenario while packing floating point value!");
         #else
           std::abort();
         #endif
       }
 
       // Turn into fractional numerator.
-      fraction *= FRACTION_DENOMINATOR;
+      fraction *= _FRACTION_DENOMINATOR;
       // // Truncate numerator, can also use floor() but probably slower.
-      fraction_numerator = static_cast<INT_IO_T>(fraction);
+      fraction_numerator = static_cast<UINT_IO_T>(fraction);
       // Round to even.
       if (
         (fraction - fraction_numerator > 0.5) ||
         ((fraction - fraction_numerator == 0.5) && (fraction_numerator % 2 == 1))
       ) {
         fraction_numerator += 1;
-        if (fraction_numerator == FRACTION_DENOMINATOR) {
+        if (fraction_numerator == _FRACTION_DENOMINATOR) {
           // Fraction overflows, carry to exponent.
           fraction_numerator = 0;
           exponent += 1;
-          if (exponent >= EXPONENT_MASK) {
-            #if (__cpp_exceptions == 199711)
-              throw std::runtime_error("The floating point value is too large to be packed into the designated format!");
+          if (exponent >= _EXPONENT_MASK) {
+            #ifdef NUMIO_ENABLE_EXCEPTIONS
+              throw NumIOError("The floating point value is too large to be packed into the designated format!");
             #else
               std::abort();
             #endif
@@ -619,10 +683,10 @@ class FloatIO
       }
     }
 
-    INT_IO_T binary_data =
-      (static_cast<INT_IO_T>(sign) << (N_BITS_EXPONENT + N_BITS_FRACTION)) |
-      (static_cast<INT_IO_T>(exponent & EXPONENT_MASK) << N_BITS_FRACTION) |
-      (fraction_numerator & FRACTION_MASK);
+    UINT_IO_T binary_data =
+      (static_cast<UINT_IO_T>(sign) << (N_BITS_EXPONENT + N_BITS_FRACTION))  |
+      (static_cast<UINT_IO_T>(exponent & _EXPONENT_MASK) << N_BITS_FRACTION) |
+      (fraction_numerator & _FRACTION_MASK);
 
     _INTIO_TYPE::template pack<ENDIANNESS_V>(binary_data, bytes, offset);
 
@@ -653,7 +717,7 @@ class FloatIO
   {
     // Extend vector for packed data.
     auto offset = bytes.size();
-    bytes.resize(offset+N_IO_BYTES);
+    bytes.resize(offset+AMOUNT_IO_BYTES);
     pack<ENDIANNESS_V>(value, bytes.data(), offset);
   }
 
@@ -681,8 +745,16 @@ class FloatIO
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static FLOAT_T read(std::istream& s)
   {
-    unsigned char buffer[N_IO_BYTES] = { 0 };
-    s.read(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+    unsigned char buffer[AMOUNT_IO_BYTES] = { 0 };
+    #ifdef NUMIO_ENABLE_EXCEPTIONS
+      auto current_pos = s.tellg();
+      s.read(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
+      if (s.tellg() - current_pos < AMOUNT_IO_BYTES) {
+        NumIOError("Unexpected end of stream!");
+      }
+    #else
+      s.read(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
+    #endif
     return unpack<ENDIANNESS_V>(&buffer[0], 0);
   }
 
@@ -696,9 +768,9 @@ class FloatIO
   template<Endian ENDIANNESS_V=NUMIO_DEFAULT_ENDIAN_V>
   static void write(FLOAT_T value, std::ostream& s)
   {
-    unsigned char buffer[N_IO_BYTES] = { 0 };
+    unsigned char buffer[AMOUNT_IO_BYTES] = { 0 };
     pack<ENDIANNESS_V>(value, &buffer[0], 0);
-    s.write(reinterpret_cast<char*>(&buffer[0]), N_IO_BYTES);
+    s.write(reinterpret_cast<char*>(&buffer[0]), AMOUNT_IO_BYTES);
     return;
   }
 };

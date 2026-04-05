@@ -1,76 +1,94 @@
-
 # numio-cpp
 
 <!-- BADGES -->
 <div align="left">
-    <!--
-        C++ standard
-    --->
-    <img src="https://img.shields.io/badge/C++-17+-informational.svg?labelColor=363d45&logo=cplusplus&logoColor=white"
+  <!--
+    C++ standard
+  --->
+  <img src="https://img.shields.io/badge/C++-17+-informational.svg?labelColor=363d45&logo=cplusplus&logoColor=white"
     alt="C++17"/>
-    <!--
-        Library tag version
-    --->
-    <a href="https://github.com/deltarazero/numio-cpp/tags">
-        <img src="https://img.shields.io/github/v/tag/deltarazero/numio-cpp?labelColor=363d45&logo=github&logoColor=white"
-        alt="Latest release tag version"/></a>
-    <!--
-        License
-    --->
-    <a href="https://choosealicense.com/licenses/bsd-3-clause/">
-        <img src="https://img.shields.io/github/license/DeltaRazero/numio-cpp?labelColor=363d45&color=informational"
-        alt="BSD 3-Clause license"/></a>
+  <!--
+    Library tag version
+  --->
+  <a href="https://github.com/deltarazero/numio-cpp/tags">
+    <img src="https://img.shields.io/github/v/tag/deltarazero/numio-cpp?labelColor=363d45&logo=github&logoColor=white"
+    alt="Latest release tag version"/></a>
+  <!--
+    License
+  --->
+  <a href="https://choosealicense.com/licenses/bsd-3-clause/">
+    <img src="https://img.shields.io/github/license/DeltaRazero/numio-cpp?labelColor=363d45&color=informational"
+    alt="BSD 3-Clause license"/></a>
 </div>
 
-numio-cpp is a C++17 header-only library that provides a set of template classes for flexible and platform-agnostic integer and float data I/O in a customizable and endian-safe manner.
+numio-cpp is a C++17 header-only library that provides a set of template classes for flexible and portable integer and float data I/O in a customizable and endian-safe manner.
 
 
 ## Getting Started
 
-Copy the files from the `include` directory into your project's `include` directory.
+This library is header only. It contains no other dependencies.
 
-You can then include `numio.hpp` or `numio/native.hpp` if you are targetting a system that has the same endianness as your current system.
+### Manual Installation
+
+Copy the `include` directory from this library into your project's `include` directory.
+
+### CPM
+
+If you use the [CPM CMake dependency manager](https://github.com/cpm-cmake/cpm.cmake), you can include this library like so:
+
+```cmake
+CPMAddPackage("gh:DeltaRazero/numio-cpp#1.4.0")
+target_link_libraries(${PROJECT_NAME} INTERFACE numio::numio)
+```
 
 
 ## Usage
 
-The `numio` namespace provides two main template classes: `IntIO` for integer data I/O and `FloatIO` for floating-point data I/O.
+Include `<numio.hpp>`, or `<numio/native.hpp>` if you are targeting a system that has the same endianness as your current system (e.g. compiling for use on your current system).
 
-Following is a short description of features.
+The `numio` namespace provides two main template classes. `IntIO` for integer data I/O and `FloatIO` for floating-point data I/O.
 
+### I/O with Arrays
 
-### Unpacking and Packing with Arrays
-
-The methods `unpack` and `pack` have overloads to support either `std::vector` or C-style arrays as input. The example below demonstrates the use of using `std::vector` arrays.
+The methods `unpack()` and `pack()` have overloads to support either `std::vector` or C-style arrays as input. The example below demonstrates the use of using `std::vector` arrays.
 
 ```cpp
-std::vector<std::uint8_t> data_bytes = {0x01, 0x02, 0x03, 0x04};
-int unpacked_value = numio::IntIO<std::int32_t>::unpack(data_bytes);
-
-std::vector<std::uint8_t> data_bytes;
-numio::IntIO<std::int32_t>::pack(1234, data_bytes);
+// Read.
+std::vector<uint8_t> data_bytes = {0x01, 0x02, 0x03, 0x04};
+int32_t unpacked_value = numio::IntIO<int32_t>::unpack(data_bytes);
+// Write.
+std::vector<uint8_t> data_bytes;
+numio::IntIO<int32_t>::pack(1234, data_bytes);
 ```
 
-### Reading/Writing with Streams
+### I/O with Streams
 
 ```cpp
+// Read.
 std::ifstream input_file("input.bin", std::ios::binary);
-std::int32_t value = numio::IntIO<std::int32_t>::read(input_file);
-
+int32_t value = numio::IntIO<int32_t>::read(input_file);
+// Write.
 std::ofstream output_file("output.bin", std::ios::binary);
-numio::IntIO<std::int32_t>::write(value, output_file);
+numio::IntIO<int32_t>::write(value, output_file);
 ```
+
+> [!WARNING]
+> Runtime exceptions and bounds-checking are disabled by default for performance reasons. You should be implementing bounds-checking yourself.
+>
+> You can define the macro `NUMIO_ENABLE_EXCEPTIONS` to enable these in numio, but these should be meant for debug/test builds.
+>
+> You can retrieve the amount of bytes to read/write via the static constant `::AMOUNT_IO_BYTES` in both the `IntIO` and `FloatIO` classes.
 
 ### Endianness
 
-The `ENDIANNESS_V` template parameter is used to specify the byte order of the data when (un)packing. The data is written correctly regardless of the system's native endianness. Expects a value from the enum class `numio::Endian`, which defines the following values:
+The `ENDIANNESS_V` template parameter on the functions `unpack()`, `pack()`, `read()`, and `write()` is used to specify the byte order. The data is written correctly regardless of the system's native endianness. Expected value is an entry from the enum class `numio::Endian`, which defines the following values:
 
-* `Endian::LITTLE`: Specifies little-endian byte order, where the least significant byte is stored first (common on x86 and x86-64 architectures).
-* `Endian::BIG`: Specifies big-endian byte order, where the most significant byte is stored first (common on some older architectures like Motorola 68k and in network protocols).
+* `Endian::LITTLE`: Little-endian (LE) byte order. The least significant byte is stored first (common on x86 and x86-64 architectures).
+* `Endian::BIG`: Big-endian byte (BE) order. The most significant byte is stored first (common on some older architectures like Motorola 68k and in network protocols).
 * `Endian::NATIVE`: Uses the byte order of the **system running the compiler**.
-* `Endian::NETWORK`: Equivalent to `Endian::BIG` and is commonly used for network protocol data where big-endian byte order is prevalent.
+* `Endian::NETWORK`: Equivalent to `Endian::BIG`. Commonly used for network protocol data where big-endian byte order is prevalent.
 
-> [!IMPORTANT]
+> [!CAUTION]
 > #### Ensuring Data Portability when Cross-Compiling
 >
 > When cross-compiling, it's crucial to specify the target system's endianness explicitly, since it is not possible to detect the target system's endianness at compile-time. Defining the system endianness explicitly ensures that data is processed correctly on target systems with a different endianness than the current system that is compiling.
@@ -88,37 +106,37 @@ The `numio/std.hpp` header provides standardized aliases for common data types. 
 
 #### Integer Types
 
-| **Length**       | **Signed Type**  | **Unsigned Type**  |
-|------------------|------------------|--------------------|
-| 8-bit            | `numio::i8_io`   | `numio::u8_io`     |
-| 16-bit           | `numio::i16_io`  | `numio::u16_io`    |
-| 24-bit (packed)  | `numio::i24_io`  | `numio::u24_io`    |
-| 24-bit (aligned) | `numio::i24a_io` | `numio::u24a_io`   |
-| 32-bit           | `numio::i32_io`  | `numio::u32_io`    |
-| 64-bit           | `numio::i64_io`  | `numio::u64_io`    |
+| **Bit Width**    | **Target Type** | **Signed I/O Type** | **Unsigned I/O Type** |
+|------------------|-----------------|---------------------|-----------------------|
+| 8-bit            | `(u)int8_t`     | `numio::i8_io`      | `numio::u8_io`        |
+| 16-bit           | `(u)int16_t`    | `numio::i16_io`     | `numio::u16_io`       |
+| 24-bit (packed)  | `(u)int32_t`    | `numio::i24_io`     | `numio::u24_io`       |
+| 24-bit (aligned) | `(u)int32_t`    | `numio::i24a_io`    | `numio::u24a_io`      |
+| 32-bit           | `(u)int32_t`    | `numio::i32_io`     | `numio::u32_io`       |
+| 64-bit           | `(u)int64_t`    | `numio::i64_io`     | `numio::u64_io`       |
 
 #### Floating-Point Types (IEEE 754)
 
-| **Precision**     | **Type**         |
-|-------------------|------------------|
-| 16-bit (`float`)  | `numio::fp16_io` |
-| 32-bit (`float`)  | `numio::fp32_io` |
-| 64-bit (`double`) | `numio::fp64_io` |
+| **Precision** | **Target Type** | **I/O Type**     |
+|---------------|-----------------|------------------|
+| 16-bit        | `float`         | `numio::fp16_io` |
+| 32-bit        | `float`         | `numio::fp32_io` |
+| 64-bit        | `double`        | `numio::fp64_io` |
 
 #### Floating-Point Extra Types
 
 Extra floating-point types, defined in `numio/fp_extra.hpp`.
 
-| **Precision**                   | **Type**             |
-|---------------------------------|----------------------|
-| Google Brain bfloat16 (`float`) | `numio::bf16_io`     |
-| NVidia TensorFloat (`float`)    | `numio::nv_tf32_io`  |
-| AMD fp24 (`float`)              | `numio::amd_fp24_io` |
-| Pixar PXR24 (`float`)           | `numio::pxr24_io`    |
+| **Precision**         | **Target Type** | **Type**             |
+|-----------------------|-----------------|----------------------|
+| Google Brain bfloat16 | `float`         | `numio::bf16_io`     |
+| NVidia TensorFloat    | `float`         | `numio::nv_tf32_io`  |
+| AMD/ATI fp24          | `float`         | `numio::amd_fp24_io` |
+| Pixar PXR24           | `float`         | `numio::pxr24_io`    |
 
 ### Custom Formats
 
-In addition to the default integer types supported in C++, numio supports custom integer and floating-point formats with specified bit widths and alignment. This allows you to work with non-standard type representations. To work with custom formats, you can use the IntIO/FloatIO class and provide the necessary template parameters.
+In addition to the default integer types supported in C++, numio supports custom integer and floating-point formats with specified bit widths and alignment. This allows you to work with non-standard type representations. To work with custom formats, you can use the `IntIO` and `FloatIO` classes and provide the necessary template parameters.
 
 #### Integer Formats
 
@@ -133,10 +151,11 @@ class IntIO;
 Example with a 12-bit integer:
 
 ```cpp
-// Define I/O for unsigned 12-bit integer and aligned to 4 bytes
+// Define I/O for unsigned 12-bit integer and aligned to 4 bytes.
 using uint12_io = numio::IntIO<uint32_t, 12, true>;
 
-std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34}; // Represents a 12-bit integer value
+// Represents a 12-bit integer value.
+std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x12, 0x34};
 uint32_t unpacked_value = uint12_io::unpack(data_bytes);
 ```
 
@@ -147,20 +166,37 @@ template <typename FLOAT_T, typename INT_IO_T, unsigned int N_BITS_EXPONENT, uns
 class FloatIO;
 ```
 * `FLOAT_T`: This will be the container to store the value in.
-* `INT_IO_T`: Integer type used as intermediate storage for I/O retrieval and storage.
 * `N_BITS_EXPONENT`: Specifies the amount of bits of the exponent part of the floating point data. Defaults to an automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
 * `N_BITS_FRACTION`: Specifies the amount of bits of the fraction part of the floating point data. Defaults to an automatically calculated value if `FLOAT_T` is a built-in type or implements `std::numeric_limits<FLOAT_T>`.
 * `ALIGNED_V`: Specifies if the data to (un)pack is aligned to match up with the amount of bytes as used by the intermediate storage type `INT_IO_T`.
+* `UINT_IO_T`: Unsigned integer type used as intermediate storage for I/O retrieval and storage.
 
 Example with bfloat16:
 
 ```cpp
-// Define I/O for a floating-point number with 8 bits for the exponent part and 7 bits for the fraction. Retrieved and stored in a 16-bit integer
-using bf16_io = FloatIO<float, std::uint16_t, 8, 7>;
+// Define I/O for a floating-point number with 8 bits for
+//the exponent part and 7 bits for the fraction. Aligned to,
+// retrieved and stored in a 16-bit unsigned integer.
+using bf16_io = FloatIO<float, 8, 7, true, uint16_t>;
 
-std::vector<uint8_t> data_bytes = {0x3E, 0x20}; // Represents a bfloat16 value
+// Represents a bfloat16 value.
+std::vector<uint8_t> data_bytes = {0x3E, 0x20};
 float unpacked_value = bf16_io::unpack(data_bytes);
 ```
+
+#### Extended Floating-Point Types
+
+When targeting C++23 or newer, you may use one of the following fixed-width extended floating-point types. Support for these is optional, and depends if the compiler-implementation and target architecture supports these.
+
+When supported, simply passing one of the following types to template parameter `FLOAT_T` will yield a supported specialization of `FloatIO` without any definitions needed by the user.
+
+| **Type**          | **Additional Requirements**  |
+|-------------------|------------------------------|
+| `std::float16_t`  | n/a                          |
+| `std::float32_t`  | n/a                          |
+| `std::float64_t`  | n/a                          |
+| `std::float128_t` | Support for non-standard type `__uint128_t` or manually include [Boost.int128](https://github.com/cppalliance/int128). |
+| `std::bfloat16_t` | n/a                          |
 
 ### Customize Defaults
 
@@ -169,6 +205,11 @@ You can customize default behaviour by defining the following macros before incl
 * `NUMIO_DEFAULT_ENDIAN_V`: Set the default endianness for (un)packing data when not explicitly setting the method template parameter `ENDIANNESS_V` (default is `numio::Endian::LITTLE`).
 * `NUMIO_DEFAULT_ALIGN_V`: Set the default byte alignment for (un)packing data when not explicitly setting the class template parameter `ALIGNED_V` (default is `false`).
 
+### Other Options
+
+You can further customize behaviour by defining the following macros:
+
+* `NUMIO_ENABLE_EXCEPTIONS`: When defined, enables runtime checking and exceptions, which should be used mainly for debug or test builds.
 
 ## License
 
@@ -178,4 +219,4 @@ All included scripts, modules, etc. are licensed under the terms of the  [BSD 3-
 
 ### Acknowledgments
 
-Sourcecode of CPython's implementation of floating-point data routines for the struct module served as basis and for insights resource for the implementation of packing floating-point data in this library. In particaluar, I thank the contributions of Eli Stevens, Mark Dickinson, and Victor Stinner.
+CPython's implementation of floating-point data routines from the 'struct' module served as basis and for insights for the implementation of the floating-point data packing function in this library. In particular, I thank the contributions of Eli Stevens, Mark Dickinson, and Victor Stinner.

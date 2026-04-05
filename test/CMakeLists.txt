@@ -43,6 +43,8 @@ target_link_libraries(unit_tests
     gtest_main
 )
 
+add_compile_options(-Wall -Wextra -Werror -pedantic)
+
 # Allow CTest to discover the tests automatically.
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
